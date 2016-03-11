@@ -1,0 +1,5 @@
+*.pyc
+*.sw*
+*.json
+*.zip
+*.npy
