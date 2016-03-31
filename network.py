@@ -3,11 +3,23 @@ import numpy as np
 
 DEFAULT_PADDING = "SAME"
 
+def layer(func):
+    def layer_decorator(cls, *args, **kargs):
+        if len(cls.input) == 0:
+            raise RuntimeError("no input found for this layer.")
+        output = func(cls, *args, **kargs)
+        return cls
+    return layer_decorator
+
 class Network(object):
 
     def __init__(self):
         pass
         # self.layers = dict(inputs)
+        self.setup()
+
+    def setup(self):
+        raise NotImplementedError("must be subclassed.")
 
     @staticmethod
     def set_weight_variable(shape, stddev=0.1):
@@ -19,6 +31,7 @@ class Network(object):
         initial = tf.constant(0.1, shape=shape)
         return tf.Variable(initial, name="bias")
 
+    @layer
     def conv(self, input, name, k_h, k_w,
              o_c, s_w, s_h, relu=True, padding=DEFAULT_PADDING):
         """
@@ -47,9 +60,11 @@ class Network(object):
             else:
                 return output
 
-    def relu(self,input, name):
+    @layer
+    def relu(self, input, name):
         return tf.nn.relu(input, name=name)
 
+    @layer
     def maxpool(self, input, name, k_h, k_w, s_h, s_w, padding=DEFAULT_PADDING):
         """
         k_h, k_w, s_h s_w are the same as conv definition
@@ -63,6 +78,7 @@ class Network(object):
                                   padding=padding,
                                   name=name)
 
+    @layer
     def avgpool(self, input, name, k_h, k_w, s_h, s_w, padding=DEFAULT_PADDING):
         if padding not in ("SAME", "VALID"):
             raise TypeError("padding must be either SAME or VALID")
@@ -73,6 +89,7 @@ class Network(object):
                                   padding=padding,
                                   name=name)
 
+    @layer
     def local_response_normalization(self, input, name, radius, alpah, beta, bias=1.0):
         with tf.variable_scope(name) as scope:
             return tf.nn.local_response_normalization(input,
@@ -82,6 +99,7 @@ class Network(object):
                                                       bias=bias,
                                                       name=name)
 
+    @layer
     def fully_connected(self, input, name, num_out, relu=True):
         """
         num_out is the number of output channels after the fc layer
@@ -97,6 +115,7 @@ class Network(object):
                 output = tf.nn.relu(output)
             return output
 
+    @layer
     def dropout(self, input, name, prob):
         """
         prob is the probility of dropout
@@ -104,6 +123,7 @@ class Network(object):
         with tf.variable_scope(name) as scope:
             return tf.nn.dropout(input, prob, name=name)
 
+    @layer
     def softmax(self, input, name):
         with tf.variable_scope(name) as scope:
             return tf.nn.softmax(input, name)
